@@ -1,0 +1,43 @@
+name: e2e (replay determinístico)
+
+# Fase 3 — roda as specs cristalizadas SEM modelo. Determinístico, rápido, barato.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.49.0-noble   # browsers já instalados
+    env:
+      TARGET_URL: ${{ vars.TARGET_URL }}                  # defina em Settings > Variables
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Existem specs?
+        id: check
+        run: |
+          if ls tests/*.spec.ts >/dev/null 2>&1; then
+            echo "has_specs=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_specs=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nenhuma spec ainda (Fase 2 não gerou testes). Replay pulado."
+          fi
+
+      - name: Instala o runner do Playwright
+        if: steps.check.outputs.has_specs == 'true'
+        run: npm init -y && npm install -D @playwright/test@1.49
+
+      - name: Replay E2E (sem modelo)
+        if: steps.check.outputs.has_specs == 'true'
+        run: npx playwright test --reporter=html
+
+      - name: Publica o relatório
+        if: ${{ steps.check.outputs.has_specs == 'true' && !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
