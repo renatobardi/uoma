@@ -50,15 +50,25 @@ llama-server -hf Mungert/UI-TARS-1.5-7B-GGUF:Q4_K_M \
 cp .env.example .env   # preencha TARGET_URL (+ login se precisar)
 ```
 
-**3. Fase 2 — authoring (container fala com o modelo no host):**
+**3. Fase 2 — exploração (container fala com o modelo no host):**
 ```bash
-docker compose run --rm harness
+docker compose run --rm harness                      # gera artifacts/steps.json
 ```
 
-**4. Fase 3 — replay determinístico (sem modelo, igual ao CI):**
+**4. Gera as specs a partir do que foi explorado:**
+```bash
+docker compose run --rm harness python -m uoma.gen   # gera tests/flow.spec.ts
+```
+
+**5. Fase 3 — replay determinístico (sem modelo, igual ao CI):**
 ```bash
 docker compose --profile ci run --rm e2e
 ```
+
+> **Smoke test / calibração:** no 1º run, abra `artifacts/steps.json` e confira se os
+> cliques caíram nos elementos certos. Se errarem em bloco, troque `COORD_SPACE` no
+> `.env` (`norm1000` ↔ `absolute`). Passos marcados `via: pixel` não viram spec
+> determinístico — só os `via: selector`.
 
 ## Notas
 
