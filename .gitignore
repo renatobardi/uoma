@@ -1,0 +1,26 @@
+# segredos / config local
+.env
+
+# artefatos gerados pela exploração (authoring-time)
+artifacts/*
+!artifacts/.gitkeep
+
+# resultados do Playwright
+test-results/
+playwright-report/
+blob-report/
+node_modules/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# modelos (NÃO versionar pesos)
+*.gguf
+
+# SO / editor
+.DS_Store
+.idea/
+.vscode/

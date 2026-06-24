@@ -1,0 +1,33 @@
+# POC UI-TARS — camada containerizada.
+# O MODELO NÃO está aqui: roda no host (Mac/Metal) via llama-server em :8080.
+# Os containers falam com ele por host.docker.internal.
+
+services:
+  # FASE 2 — loop de authoring (explora + gera specs). Precisa de browser → imagem Playwright Python.
+  harness:
+    build: ./harness
+    environment:
+      MODEL_BASE_URL: ${MODEL_BASE_URL:-http://host.docker.internal:8080/v1}
+      MODEL_NAME: ${MODEL_NAME:-ui-tars-1.5-7b}
+      TARGET_URL: ${TARGET_URL:?defina TARGET_URL no .env}
+      TARGET_USER: ${TARGET_USER:-}
+      TARGET_PASS: ${TARGET_PASS:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # alcança o modelo no host (Linux/Mac)
+    volumes:
+      - ./artifacts:/app/artifacts            # flows.json, steps/*.json, screenshots
+      - ./tests:/app/tests                    # specs *.spec.ts geradas
+    shm_size: "1gb"                            # Chromium precisa de /dev/shm
+
+  # FASE 3 — replay determinístico (SEM modelo). Mesmo ambiente do CI.
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.49.0-noble
+    working_dir: /work
+    environment:
+      TARGET_URL: ${TARGET_URL:?defina TARGET_URL no .env}
+    volumes:
+      - ./tests:/work/tests
+      - ./playwright.config.ts:/work/playwright.config.ts
+      - ./artifacts:/work/artifacts
+    command: ["npx", "--yes", "playwright", "test"]
+    profiles: ["ci"]                           # não sobe junto do harness; roda sob demanda
